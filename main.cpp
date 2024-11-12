@@ -1,38 +1,42 @@
 #include <iostream>
 #include <fstream>
-#include <thread>
-#include <chrono>
-#include <exception>
-
+#include <string>
 #include "Bot.h"
-
-void run_bot(const std::string& token) {
-    while (true) {
-        try {
-            Bot DiscordBot(token);
-            DiscordBot.start();  // Inicia o bot
-        } catch (const std::exception& e) {
-            std::cerr << "Erro ao executar o bot: " << e.what() << std::endl;
-            std::cerr << "Tentando reiniciar em 5 segundos..." << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(5));  // Pausa antes de tentar novamente
-        }
-    }
-}
+#include <nlohmann/json.hpp>
+using namespace std;
 
 int main() {
-    std::ifstream token_file("../token.txt");
+    ifstream token_file("../token.json");
+
     if (!token_file.is_open()) {
-        std::cerr << "Erro: Não foi possível abrir o arquivo token.txt." << std::endl;
+        cerr << "Erro: Não foi possivel abrir o arquivo token.json" << endl;
         return 1;
     }
 
-    std::string token;
-    std::getline(token_file, token);
-    token.erase(std::remove(token.begin(), token.end(), '\n'), token.end());
+    nlohmann::json config;
 
-    std::cout << "Token recebido: " << token << std::endl;
+    try {
+        token_file >> config;
+        cout << "Conteúdo do JSON carregado: " << config.dump() << endl;
 
-    run_bot(token);  // Executa o bot com lógica de reinício
+        if (config.contains("token") && !config["token"].is_null() && config["token"].is_string()) {
+            string token = config["token"];
 
+            cout << "Iniciando o bot com o token: " << token << endl;
+            Bot DiscordBot(token);
+            DiscordBot.start();
+        } else {
+            cerr << "Erro: token inválido." << endl;
+            return 1;
+        }
+    } catch (const nlohmann::json::exception& e) {
+        cerr << "Erro ao processar o JSON: " << e.what() << endl;
+        return 1;
+    } catch (const std::exception& e) {
+        cerr << "Erro inesperado: " << e.what() << endl;
+        return 1;
+    }
+
+    cout << "Programa finalizado com sucesso." << endl;
     return 0;
 }

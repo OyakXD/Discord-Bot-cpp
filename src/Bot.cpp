@@ -6,7 +6,6 @@ using namespace dpp;
 
 Bot::Bot(const string& token) : bot(token){
 
-  bot.on_log(utility::cout_logger());
   bot.on_slashcommand([this](const slashcommand_t& event) {
     handle_command(event);
   });

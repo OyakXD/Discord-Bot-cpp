@@ -17,12 +17,10 @@ int main() {
 
     try {
         token_file >> config;
-        cout << "Conteúdo do JSON carregado: " << config.dump() << endl;
 
         if (config.contains("token") && !config["token"].is_null() && config["token"].is_string()) {
             string token = config["token"];
 
-            cout << "Iniciando o bot com o token: " << token << endl;
             Bot DiscordBot(token);
             DiscordBot.start();
         } else {

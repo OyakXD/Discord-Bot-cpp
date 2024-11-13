@@ -2,6 +2,7 @@
 #include "commands/subcommands/CodeCommand.h"
 #include "commands/subcommands/AvatarCommand.h"
 #include "commands/subcommands/HelloCommand.h"
+#include "commands/subcommands/ChatCommand.h"
 #include <spdlog/spdlog.h>
 using namespace std;
 using namespace dpp;
@@ -30,13 +31,18 @@ void Bot::register_commands(){
   command_map["hello"] = make_unique<HelloCommand>();
   command_map["codigo"] = make_unique<CodeCommand>();
   command_map["avatar"] = make_unique<AvatarCommand>();
+  command_map["chatgpt"] = make_unique<ChatCommand>();
 
   for(const auto& [name, command] : command_map){
     slashcommand new_command(command->get_name(), command->get_description(), bot.me.id);
 
     if(name == "avatar"){
       new_command.add_option(
-        command_option(co_user, "user", "Usuário para ver o avatar", false)
+        command_option(co_user, "usúario", "Usuário para ver o avatar", false)
+      );
+    } else if(name == "chatgpt"){
+      new_command.add_option(
+        command_option(co_string, "pergunta", "Pergunta para o ChatGPT", true)
       );
     }
     

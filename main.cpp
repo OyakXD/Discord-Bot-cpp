@@ -7,7 +7,6 @@ using namespace std;
 
 int main() {
     ifstream token_file("../token.json");
-
     if (!token_file.is_open()) {
         cerr << "Erro: Não foi possivel abrir o arquivo token.json" << endl;
         return 1;

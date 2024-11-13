@@ -26,9 +26,9 @@ class AvatarCommand : public ICommand {
       } else {
         user_id = event.command.usr.id;
       }
-      avatar_url = "https://cdn.discordapp.com/avatars/" + to_string(user_id) + "/" + event.command.usr.avatar.to_string() + ".png";
-
-      event.reply(avatar_url);
+      auto user = event.from->creator->user_get_sync(user_id);
+      avatar_url = user.get_avatar_url();
+      event.reply(dpp::message().set_content(avatar_url));
     }
 };
 

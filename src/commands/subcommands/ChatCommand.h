@@ -3,6 +3,10 @@
 
 #include "commands/ICommand.h"
 #include <curl/curl.h>
+#include <fstream>
+#include <dpp/dpp.h>
+#include <sstream>
+#include <openai/openai.hpp>
 #include <nlohmann/json.hpp>
 #include <sstream>
 using namespace std;
@@ -35,81 +39,51 @@ class ChatCommand : public ICommand {
       }
 
       nlohmann::json config;
-      try {
+      try{
         config_file >> config;
-      } catch (const std::exception& e) {
+      } catch (const std::exception& e){
         event.reply("Erro ao ler o arquivo de configuração");
         return;
       }
 
-      if (!config.contains("openai_api_key")) {
-        event.reply("Chave da API não encontrada no arquivo de configuração");
+      if(!config.contains("openai_api_key")){
+        event.reply("Chave de API não encontrada no arquivo de configuração");
         return;
       }
 
       string api_key = config["openai_api_key"];
-      CURL* curl;
-      CURLcode res;
-      std::stringstream response_stream;
+      if(api_key.empty()){
+        event.reply("Chave de API está vázia");
+        return;
+      }
 
-      curl_global_init(CURL_GLOBAL_DEFAULT);
-      curl = curl_easy_init();
+      openai::OpenAI openai_instance(api_key);
+      
 
-      if (curl) {
-        struct curl_slist* headers = NULL;
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        headers = curl_slist_append(headers, ("Authorization: Bearer " + api_key).c_str());
-
-        nlohmann::json json_body = {
+      try{
+        nlohmann::json request_body = {
+          {"model", "gpt-3.5-turbo"},
           {"prompt", question},
           {"max_tokens", 100}
         };
 
-        curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/engines/davinci/completions");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_body.dump().c_str());
+        auto response = openai_instance.completion.create(request_body);
 
-        // Função para escrever a resposta na string
-        auto write_callback = [](void* contents, size_t size, size_t nmemb, void* userp) -> size_t {
-                size_t realsize = size * nmemb;
-                std::stringstream* response_stream = (std::stringstream*)userp;
-
-                if (response_stream && contents) {
-                    response_stream->write((char*)contents, realsize);
-                } else {
-                    std::cerr << "Erro: Ponteiro nulo no callback de escrita" << std::endl;
-                }
-
-                return realsize;
-            };
-
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);    
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_stream);
-
-        res = curl_easy_perform(curl);
-        if (res != CURLE_OK) {
-          event.reply("Erro ao fazer a requisição ao ChatGPT");
+        if(response.contains("choices") && response["choices"].is_array() && !response["choices"].empty()){
+          string response_text = response["choices"][0]["text"];
+          event.reply(dpp::message().set_content(response_text));
         } else {
-          try {
-            auto jsonData = nlohmann::json::parse(response_stream.str());
-
-            if (jsonData.contains("choices") && jsonData["choices"].is_array() && !jsonData["choices"].empty()) {
-              string response = jsonData["choices"][0]["text"];
-              event.reply(dpp::message().set_content(response));
-            } else {
-              event.reply("Não foi possível obter uma resposta do ChatGPT");
-            }
-          } catch (const nlohmann::json::exception& e) {
-            event.reply("Erro ao processar a resposta JSON");
-          }
+          event.reply("Erro ao obter resposta do ChatGPT");
         }
+      } catch (const std::exception& e){
+        string error_message = e.what();
 
-        curl_easy_cleanup(curl);
-        curl_slist_free_all(headers);
-      } else {
-        event.reply("Erro ao inicializar o CURL");
+        if(error_message.find("insufficient_quota") != string::npos){
+          event.reply("Cota de uso da API atingida. Tente novamente mais tarde.");
+        } else {
+          event.reply("Erro ao obter resposta do ChatGPT: " + error_message);
+        }
       }
-      curl_global_cleanup();
     }
 };
 

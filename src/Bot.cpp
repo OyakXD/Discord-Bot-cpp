@@ -3,6 +3,7 @@
 #include "commands/subcommands/AvatarCommand.h"
 #include "commands/subcommands/HelloCommand.h"
 #include "commands/subcommands/ChatCommand.h"
+#include "commands/subcommands/ClearCommand.h"
 #include <spdlog/spdlog.h>
 using namespace std;
 using namespace dpp;
@@ -32,6 +33,7 @@ void Bot::register_commands(){
   command_map["codigo"] = make_unique<CodeCommand>();
   command_map["avatar"] = make_unique<AvatarCommand>();
   command_map["chatgpt"] = make_unique<ChatCommand>();
+  command_map["clear"] = make_unique<ClearCommand>();
 
   for(const auto& [name, command] : command_map){
     slashcommand new_command(command->get_name(), command->get_description(), bot.me.id);
@@ -43,6 +45,10 @@ void Bot::register_commands(){
     } else if(name == "chatgpt"){
       new_command.add_option(
         command_option(co_string, "pergunta", "Pergunta para o ChatGPT", true)
+      );
+    } else if(name == "clear"){
+      new_command.add_option(
+        command_option(co_integer, "quantidade", "Quantidade de mensagens a serem apagadas", true)
       );
     }
     

@@ -6,6 +6,10 @@
 using namespace std;
 
 int main() {
+
+    // ID Canal de Log
+    snowflake log_channel_id = 1307850806409695233;
+
     ifstream token_file("../token.json");
     if (!token_file.is_open()) {
         cerr << "Erro: Não foi possivel abrir o arquivo token.json" << endl;
@@ -20,7 +24,7 @@ int main() {
         if (config.contains("token") && !config["token"].is_null() && config["token"].is_string()) {
             string token = config["token"];
 
-            Bot DiscordBot(token);
+            Bot DiscordBot(token, log_channel_id);
             DiscordBot.start();
         } else {
             cerr << "Erro: token inválido." << endl;

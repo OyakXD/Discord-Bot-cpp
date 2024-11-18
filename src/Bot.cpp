@@ -3,18 +3,20 @@
 #include "commands/subcommands/AvatarCommand.h"
 #include "commands/subcommands/HelloCommand.h"
 #include "commands/subcommands/ChatCommand.h"
-#include "commands/subcommands/ClearCommand.h"
+#include "commands/subcommands/SobreCommand.h"
 #include <spdlog/spdlog.h>
 using namespace std;
 using namespace dpp;
 
-Bot::Bot(const string& token) : bot(token){
+Bot::Bot(const string& token, snowflake log_channel_id) : bot(token), log_channel_id(log_channel_id) {
 
   bot.on_slashcommand([this](const slashcommand_t& event) {
     handle_command(event);
   });
-}
 
+  logger = make_unique<Logger>(bot, log_channel_id);
+  logger->setup_event_handlers();
+}
 
 void Bot::start(){
   
@@ -28,12 +30,13 @@ void Bot::start(){
 }
 
 void Bot::register_commands(){
+
   // Registra um novo comando e adiciona ao mapeamento
   command_map["hello"] = make_unique<HelloCommand>();
   command_map["codigo"] = make_unique<CodeCommand>();
   command_map["avatar"] = make_unique<AvatarCommand>();
   command_map["chatgpt"] = make_unique<ChatCommand>();
-  command_map["clear"] = make_unique<ClearCommand>();
+  command_map["sobre"] = make_unique<SobreCommand>();
 
   for(const auto& [name, command] : command_map){
     slashcommand new_command(command->get_name(), command->get_description(), bot.me.id);
@@ -42,15 +45,12 @@ void Bot::register_commands(){
       new_command.add_option(
         command_option(co_user, "usúario", "Usuário para ver o avatar", false)
       );
+      
     } else if(name == "chatgpt"){
       new_command.add_option(
         command_option(co_string, "pergunta", "Pergunta para o ChatGPT", true)
       );
-    } else if(name == "clear"){
-      new_command.add_option(
-        command_option(co_integer, "quantidade", "Quantidade de mensagens a serem apagadas", true)
-      );
-    }
+    } 
     
     bot.global_command_create(new_command, [name](const dpp::confirmation_callback_t& callback) {
             if (callback.is_error()) {

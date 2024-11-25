@@ -7,6 +7,11 @@ Logger::Logger(dpp::cluster& bot, dpp::snowflake log_channel_id) : bot(bot), log
 
 void Logger::setup_event_handlers(){
 
+  /*
+
+  Eventos de criação, atualização e deleção de cargos
+  
+  */
   bot.on_guild_role_create([this](const dpp::guild_role_create_t& event){
     on_guild_role_create(event);
   });
@@ -15,6 +20,15 @@ void Logger::setup_event_handlers(){
   });
   bot.on_guild_role_delete([this](const dpp::guild_role_delete_t& event){
     on_guild_role_delete(event);
+  });
+  bot.on_guild_ban_add([this](const dpp::guild_ban_add_t& event){
+    on_guild_ban_add(event);
+  });
+  bot.on_guild_member_remove([this](const dpp::guild_member_remove_t& event){
+    on_guild_member_remove(event);
+  });
+  bot.on_voice_state_update([this](const dpp::voice_state_update_t& event){
+    on_voice_state_update(event);
   });
 }
 
@@ -74,15 +88,18 @@ void Logger::on_guild_member_remove(const dpp::guild_member_remove_t& event){
 
 void Logger::on_voice_state_update(const dpp::voice_state_update_t& event){
   if(event.state.is_mute() || event.state.is_deaf()) {
-    string user_name = event.state.user_id ? dpp::find_user(event.state.user_id)->username : "Desconhecido";
-    string user_id = to_string(event.state.user_id);
+    dpp::user* user = dpp::find_user(event.state.user_id);
+    if(user){
+      string user_name = user->username;
+      string user_id = to_string(event.state.user_id);
 
-    dpp::embed embed = dpp::embed()
-      .set_color(dpp::colors::yellow)
-      .set_title("Usúario Mutado")
-      .add_field("Usúario", user_name + " (" + user_id + ") ", false)
-      .add_field("Tipo", event.state.is_mute() ? "Mute" : "Deaf", false);
+      dpp::embed embed = dpp::embed()
+        .set_color(dpp::colors::yellow)
+        .set_title("Usúario Mutado")
+        .add_field("Usúario", user_name + " (" + user_id + ") ", false)
+        .add_field("Tipo", event.state.is_mute() ? "Mute" : "Deaf", false);
 
-    bot.message_create(dpp::message(log_channel_id, embed));
+        bot.message_create(dpp::message(log_channel_id, embed));
+    }
   }
 }
